@@ -1,0 +1,5 @@
+=head1 Games::Tetravex
+
+=head2 DESCRIPTION
+
+A clone of Tetravex written in Perl with SDL.
