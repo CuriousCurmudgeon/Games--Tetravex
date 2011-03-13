@@ -13,9 +13,14 @@
 
 # Copyright 2011 Brian Meeker (meeker.brian@gmail.com)
 
+package Games::Tetravex;
+
 use strict;
 use warnings;
+use FindBin qw ($Bin);
+use lib "$Bin/Tetravex";
 
+use Games::Tetravex::Piece;
 use SDL;
 use SDL::Event;
 use SDLx::App;
@@ -30,19 +35,9 @@ my $app = SDLx::App->new(
     exit_on_quit => 1,
 );
 
-# TODO: Upgrade SDL to have an SDLx::Text->color method. That
-# way I won't have to make separate text objects for different colors.
-my $white_text = SDLx::Text->new( font => 'Arial_Black.ttf',
-		 h_align => 'center',
-		 color => [255, 255, 255, 255],
-	     );
-my $black_text = SDLx::Text->new( font => 'Arial_Black.ttf',
-		 h_align => 'center',
-		 color => [0, 0, 0, 255],
-	     );
-
 # A piece is a four element array with the numbers, in order, representing
 # the sides of the piece clockwise, starting from the top.
+my $available_pieces_grid = initialize_available_pieces();
 my $played_pieces_grid = {
     x => 60,
     y => 60,
@@ -50,21 +45,6 @@ my $played_pieces_grid = {
 };
 $played_pieces_grid->{pieces}[8] = undef;
 
-my $available_pieces_grid = {
-    x => 480,
-    y => 60,
-    pieces => [
-	[1, 5, 5, 3],
-	[9, 6, 4, 7],
-	[2, 3, 4, 5],
-	[0, 0, 6, 6],
-	[1, 2, 3, 4],
-	[5, 6, 7, 8],
-	[9, 7, 5, 3],
-	[2, 0, 5, 4],
-	[3, 6, 9, 0],
-    ]
-};
 # The piece the user is currently dragging.
 # It will have two keys:
 # from_grid = The grid the user moved the piece from (HASHREF)
@@ -73,23 +53,6 @@ my $available_pieces_grid = {
 # x = The x position the mouse is currently at.
 # y = The y position the mouse is currently at.
 my $current_piece;
-
-# Colors are ROYGBIV, with black added to the front, and grey and white added
-# to the end.
-# The first element in each color is the actual color of the triangle.
-# The second element is the color text will appear on the triangle.
-my $colors = [
-    [0x000000FF, [255, 255, 255, 255]], # Black
-    [0xFF0000FF, [0, 0, 0, 255]], # Red
-    [0xF58D05FF, [0, 0, 0, 255]], # Orange
-    [0xFAFA1EFF, [0, 0, 0, 255]], # Yellow
-    [0x00FF00FF, [0, 0, 0, 255]], # Green
-    [0x0000FFFF, [0, 0, 0, 255]], # Blue
-    [0x9205EBFF, [0, 0, 0, 255]], # Indigo
-    [0xEE82EEFF, [0, 0, 0, 255]], # Violet
-    [0xCFCFCFFF, [0, 0, 0, 255]], # Grey
-    [0xFFFFFFFF, [0, 0, 0, 255]], # White
-];
 
 $app->add_event_handler( sub {
     my ( $event, $app ) = @_;
@@ -198,7 +161,7 @@ sub draw_pieces {
 	    my $x_offset = $upper_left_x + 121 * $x;
 	    my $y_offset = $upper_left_y + 121 * $y;
 
-	    draw_piece($piece, $x_offset, $y_offset) if defined $piece;
+	    $piece->draw($app) if defined $piece;
 	}
     }
 }
@@ -208,70 +171,6 @@ sub draw_pieces {
 Draws the given piece with its upper left corner at ($x_offset, $y_offset)
 
 =cut
-
-sub draw_piece {
-    my ($piece, $x_offset, $y_offset) = @_;
-
-    draw_triangle( 0 + $x_offset, 0 + $y_offset,
-		   120 + $x_offset, 0 + $y_offset,
-		   60 + $x_offset, 60 + $y_offset,
-		   $piece->[0]
-	       );
-
-    draw_triangle( 120 + $x_offset, 0 + $y_offset,
-		   120 + $x_offset, 120 + $y_offset,
-		   60 + $x_offset, 60 + $y_offset,
-		   $piece->[1]
-	       );
-    draw_triangle( 120 + $x_offset, 120 + $y_offset,
-		   0 + $x_offset, 120 + $y_offset,
-		   60 + $x_offset, 60 + $y_offset,
-		   $piece->[2]
-	       );
-    draw_triangle( 0 + $x_offset, 120 + $y_offset,
-		   0 + $x_offset, 0 + $y_offset,
-		   60 + $x_offset, 60 + $y_offset,
-		   $piece->[3]
-	       );
-}
-
-=head2 draw_triangle
-
-Draws a triangle for a piece. Each triangle has a 1 px black border
-and a number in the middle.
-
-=cut
-
-sub draw_triangle {
-    my ($x1, $y1, $x2, $y2, $x3, $y3, $number) = @_;
-
-    SDL::GFX::Primitives::filled_trigon_color( $app,
-    					       $x1, $y1,
-    					       $x2, $y2 ,
-    					       $x3, $y3,
-    					       $colors->[$number][0]
-    					   );
-    SDL::GFX::Primitives::trigon_color( $app,
-					$x1, $y1,
-					$x2, $y2,
-					$x3, $y3,
-					0x000000FF
-				    );
-
-    # TODO: Fix the center point calculation. This is a quick hack.
-    my $center_x = ($x1 + $x2 + $x3) / 3 - 5;
-    my $center_y = ($y1 + $y2 + $y3) / 3 - 20;
-
-    my $text_color = $colors->[$number][1];
-    if ($text_color->[0]) {
-	# TODO: The space after $number is preventing SDLx::Text
-	# from interpreting the value as 0, which causes an error.
-	$white_text->write_xy( $app, $center_x, $center_y, "$number ");
-    }
-    else {
-	$black_text->write_xy( $app, $center_x, $center_y, "$number");
-    }
-}
 
 =head2 piece_at
 
@@ -356,6 +255,29 @@ sub get_overlap {
 	];
     }
     return $overlap;
+}
+
+sub initialize_available_pieces {
+    my $grid = {
+	x => 480,
+	y => 60,
+	pieces => [],
+    };
+
+    for my $y (0..2) {
+	for my $x (0..2) {
+	    my $index = $x + (3 * $y);
+	    my $x_offset = $grid->{x} + 121 * $x;
+	    my $y_offset = $grid->{y} + 121 * $y;
+
+	    $grid->{pieces}[$index] = Games::Tetravex::Piece(
+		x => $x_offset,
+		y => $y_offset,
+		value => map { rand } (0..9),
+	    );
+
+	}
+    }
 }
 
 $app->run;
