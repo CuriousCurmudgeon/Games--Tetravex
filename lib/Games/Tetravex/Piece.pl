@@ -16,15 +16,13 @@
 use strict;
 use warnings;
 
-use Moose;
 use MooseX::Declare;
-use SDL::GFX::Primitives;
-use SDL::Surface;
-use SDLx::Text;
 
 class Games::Tetravex::Piece {
-
-    use MooseX::ClassAttribute; #Because of how MooseX::Declare works, this seems to need to be inside of the class declaration.
+    use SDL::GFX::Primitives;
+    use SDL::Surface;
+    use SDLx::Text;
+    use MooseX::ClassAttribute;
 
     # Colors are ROYGBIV, with black added to the front, and grey and white added
     # to the end.
@@ -167,3 +165,5 @@ and a number in the middle.
 			    );
     }
 }
+
+1;
