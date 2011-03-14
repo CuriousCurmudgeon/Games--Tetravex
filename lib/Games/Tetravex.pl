@@ -17,8 +17,6 @@ package Games::Tetravex;
 
 use strict;
 use warnings;
-use FindBin qw ($Bin);
-use lib "$Bin/Tetravex";
 
 use Games::Tetravex::Piece;
 use SDL;
