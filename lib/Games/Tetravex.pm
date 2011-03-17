@@ -18,13 +18,12 @@ package Games::Tetravex;
 use strict;
 use warnings;
 
+use Games::Tetravex::Grid;
 use Games::Tetravex::Piece;
 use SDL;
 use SDL::Event;
 use SDLx::App;
 use SDLx::Rect;
-use SDLx::Text;
-use SDL::GFX::Primitives;
 
 my $app = SDLx::App->new(
     w            => 900,
