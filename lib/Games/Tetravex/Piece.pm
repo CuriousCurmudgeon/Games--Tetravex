@@ -29,8 +29,8 @@ class Games::Tetravex::Piece {
     # The first element in each color is the actual color of the triangle.
     # The second element is the color text will appear on the triangle.
     class_has 'Colors' => (
-	is => 'ro',
-	isa => 'ArrayRef',
+	is      => 'ro',
+	isa     => 'ArrayRef',
 	default => sub {
 	    [0x000000FF, [255, 255, 255, 255]], # Black
 	    [0xFF0000FF, [0, 0, 0, 255]], # Red
@@ -46,26 +46,31 @@ class Games::Tetravex::Piece {
     );
 
     has 'value' => (
-	is => 'ro',
-	isa => 'ArrayRef[Scalar]',
+	is  => 'ro',
+	isa => 'ArrayRef',
     );
 
     has ['x', 'y'] => (
-	is => 'rw',
+	is  => 'rw',
 	isa => 'Int',
     );
 
+    has 'font' => (
+	is       => 'ro',
+	required => 1,
+    );
+
     has '_black_text' => (
-	is => 'ro',
-	lazy => 1,
-	builder => '_build_black_text',
+	is       => 'ro',
+	lazy     => 1,
+	builder  => '_build_black_text',
 	init_arg => undef,
     );
 
     has '_white_text' => (
-	is => 'ro',
-	lazy => 1,
-	builder => '_build_white_text',
+	is       => 'ro',
+	lazy     => 1,
+	builder  => '_build_white_text',
 	init_arg => undef,
     );
 
@@ -85,7 +90,7 @@ class Games::Tetravex::Piece {
 	return $self->value->[3];
     };
 
-=head2 draw_piece
+=head2 draw
 
 Draws the given piece with its upper left corner at ($x_offset, $y_offset)
 
@@ -152,18 +157,16 @@ and a number in the middle.
     };
 
     method _build_black_text {
-	return SDLx::Text->new( font => '../../resources/Arial_Black.ttf',
+	return SDLx::Text->new( font => $self->font,
 				h_align => 'center',
 				color => [0, 0, 0, 255],
 			    );
     }
 
     method _build_white_text {
-	return SDLx::Text->new( font => '../../resources/Arial_Black.ttf',
+	return SDLx::Text->new( font => $self->font,
 				h_align => 'center',
 				color => [255, 255, 255, 255],
 			    );
     }
 }
-
-1;
