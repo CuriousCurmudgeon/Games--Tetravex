@@ -25,8 +25,8 @@ class Games::Tetravex::Grid {
 
     has 'pieces' => (
 	is => 'ro',
-	isa => 'ArrayRef[Games::Tetravex::Piece]',
-	default => sub { [] },
+	isa => 'ArrayRef',
+	default => sub { my @pieces = map { undef } (0..8); return \@pieces },
     );
 
     has ['x', 'y'] => (
@@ -49,10 +49,7 @@ class Games::Tetravex::Grid {
 	# Draw the pieces on the grid
 	for my $y (0..2) {
 	    for my $x (0..2) {
-		my $piece = $self->{pieces}[$x + 3 * $y];
-		my $x_offset = $self->x + 121 * $x;
-		my $y_offset = $self->y + 121 * $y;
-
+		my $piece = $self->pieces->[$x + 3 * $y];
 		$piece->draw($surface) if defined $piece;
 	    }
 	}

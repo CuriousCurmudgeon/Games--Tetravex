@@ -34,18 +34,35 @@ class Games::Tetravex {
     );
 
     has 'available_pieces_grid' => (
+	is       => 'ro',
+	isa      => 'Games::Tetravex::Grid',
+	required => 1,
     );
     
     has 'played_pieces_grid' => (
+	is       => 'ro',
+	isa      => 'Games::Tetravex::Grid',
+	required => 1,
+    );
+    
+    has 'assets' => (
+	is => 'ro',
+	required => 1,
     );
 
+    # from_grid = The grid the user moved the piece from (HASHREF)
+    # piece = The piece actually being moved
+    # old_position = The position in the grid it was moved from. (SCALAR)
+    # old_x = The x position the piece was moved from
+    # old_y = The y position the piece was moved from
     has 'current_piece' => (
 	is => 'rw',
-	isa => 'Games::Tetravex::Piece',
+	isa => 'HashRef',
+	init_arg => undef,
     );
 
-    around BUILDARGS => sub {
-	my ($orig, $class, %args) = @_;
+    sub BUILDARGS {
+	my ($class, %args) = @_;
 	
 	my $app = SDLx::App->new(
 	    w            => 900,
@@ -53,126 +70,133 @@ class Games::Tetravex {
 	    t            => 'Tetravex',
 	    exit_on_quit => 1,
 	);
-
+	
 	my $assets = $args{assets};
-	
-	my $font = $assets->file('piece_font.ttf');
-
-	my $available_pieces_grid = initialize_available_pieces($font);
-	my $played_pieces_grid = {
-	    x => 60,
-	    y => 60,
-	    pieces => []
-	};
-	$played_pieces_grid->{pieces}[8] = undef;
-
-	$app->add_event_handler(sub { $self->handle_mouse_click(@_) });
-	$app->add_show_handler( sub { $self->show_handler(@_) });
-
-	return $class->$orig(
-	    app                    => $app,
-	    available_pieces_griid => $available_pieces_grid,
-	    played_pieces_grid     => $played_pieces_grid,
-	);
-    };
-
-    
-    
-    method handle_mouse_click($event, $app) {
-	# We want a drag & drop interface for pieces.
-	if ($event->type == SDL_MOUSEBUTTONDOWN and $event->button_button == SDL_BUTTON_LEFT) {
-	    my $x = $event->button_x;
-	    my $y = $event->button_y;
-	    print "mouse clicked at $x, $y\n";
-	
-	    # Did they click a piece that has been played?
-	    my $piece_number;
-	    if (($piece_number = piece_at($played_pieces_grid, $x, $y)) != -1) {
-		print "clicked played piece #$piece_number\n";
-		if (defined $played_pieces_grid->{pieces}[$piece_number]) {
-		    $current_piece = remove_piece($played_pieces_grid, $piece_number);
-		    $current_piece->{x} = $x;
-		    $current_piece->{y} = $y;
-		}
-	    } elsif (($piece_number = piece_at($available_pieces_grid, $x, $y)) != -1) {
-		print "clicked available piece #$piece_number\n";
-		if (defined $available_pieces_grid->{pieces}[$piece_number]) {
-		    $current_piece = remove_piece($available_pieces_grid, $piece_number);
-		    $current_piece->{x} = $x;
-		    $current_piece->{y} = $y;
-		}
-	    }
-
-	} elsif ($event->type == SDL_MOUSEBUTTONUP and $event->button_button == SDL_BUTTON_LEFT) {
-	    my $x = $event->button_x;
-	    my $y = $event->button_y;
-	    print "mouse released at $x, $y\n";
-
-	    # Put the piece back in the grid
-	    if (defined $current_piece) {
-		my $overlap = get_overlap();
-		my $destination = $overlap->[0];
-		$destination->{grid}{pieces}[$destination->{grid_index}] = $current_piece->{piece};
-		$current_piece = undef;
-	    }
-	} elsif ($event->type == SDL_MOUSEMOTION and defined $current_piece) {
-	    $current_piece->{x} = $event->motion_x;
-	    $current_piece->{y} = $event->motion_y;
-	}
-    }
-
-    method show_handler() {
-	# first, we clear the screen
-	$app->draw_rect( [ 0, 0, $app->w, $app->h ], 0x000000 );
-
-	# Draw the two grids. The left one is playing grid.
-	# The right one holds pieces in reserve.
-	draw_grid($self->played_pieces_grid);
-	draw_grid($self->available_pieces_grid);
-
-	draw_pieces($self->played_pieces_grid); # playing grid
-	draw_pieces($self->available_pieces_grid); # remaining pieces grid
-
-	# Draw the piece being dragged
-	if (defined $current_piece) {
-	    draw_piece($current_piece->{piece}, $current_piece->{x}, $current_piece->{y});
-	}
-
-	$app->update;
-    };
-
-    method _initialize_available_pieces($font) {
-	my $grid = Games::Tetravex::Grid->new(
+	my $available_pieces_grid = Games::Tetravex::Grid->new(
 	    x => 480,
 	    y => 60,
 	);
+	my $played_pieces_grid = Games::Tetravex::Grid->new(
+	    x => 60,
+	    y => 60,
+	);
 
-	for my $y (0..2) {
-	    for my $x (0..2) {
-		my $index = $x + (3 * $y);
-		my $x_offset = $grid->x + 121 * $x;
-		my $y_offset = $grid->y + 121 * $y;
+	my %objects = (
+	    app                   => $app,
+	    available_pieces_grid => $available_pieces_grid,
+	    played_pieces_grid    => $played_pieces_grid,
+	    assets                => $assets,
+	);
 
-		# TODO: This could theoretically produce a 10.
-		my @values = map { int(rand(10)) } (0..3);
-		$grid->pieces->[$index] = Games::Tetravex::Piece->new(
-		    x => $x_offset,
-		    y => $y_offset,
-		    value => \@values,
-		    font  => $font,
-		);
+	return {%args, %objects};
+    };
 
-	    }
-	}
-	return $grid;
+    method BUILD($args) {
+	my $font = $self->assets->file('piece_font.ttf');
+    	$self->_populate_available_pieces($font);
+    	$self->app->add_event_handler(sub { $self->handle_mouse_click(@_) });
+    	$self->app->add_show_handler( sub { $self->handle_show(@_) });
     }
-}
 
-# The piece the user is currently dragging.
-# It will have two keys:
-# from_grid = The grid the user moved the piece from (HASHREF)
-# piece = The piece actually being moved (ARRAYREF)
-# old_position = The position in the grid it was moved from. (SCALAR)
-# x = The x position the mouse is currently at.
-# y = The y position the mouse is currently at.
-#my $current_piece;
+    method handle_mouse_click($event, $app) {
+    	# We want a drag & drop interface for pieces.
+    	if ($event->type == SDL_MOUSEBUTTONDOWN and $event->button_button == SDL_BUTTON_LEFT) {
+    	    my $x = $event->button_x;
+    	    my $y = $event->button_y;
+	
+    	    # Did they click a piece that has been played?
+    	    my $piece_number;
+    	    if (($piece_number = $self->played_pieces_grid->piece_at($x, $y)) != -1) {
+    		if (defined $self->played_pieces_grid->pieces->[$piece_number]) {
+    		    $self->_set_current_piece($self->played_pieces_grid, $piece_number, $x, $y);
+    		}
+    	    } elsif (($piece_number = $self->available_pieces_grid->piece_at($x, $y)) != -1) {
+    		if (defined $self->available_pieces_grid->pieces->[$piece_number]) {
+    		    $self->_set_current_piece($self->available_pieces_grid, $piece_number, $x, $y);
+    		}
+    	    }
+
+    	} elsif ($event->type == SDL_MOUSEBUTTONUP and $event->button_button == SDL_BUTTON_LEFT) {
+    	    my $x = $event->button_x;
+    	    my $y = $event->button_y;
+
+    	    # Put the piece back in the grid
+    	    if (defined $self->current_piece) {
+    		# Get the overlap from each grid
+    		my $available_overlap = $self->available_pieces_grid->get_overlap($self->current_piece->{piece});
+    		my $played_overlap = $self->played_pieces_grid->get_overlap($self->current_piece->{piece});
+		
+    		# The destination is the one with the most overlap
+		my $available_value = (defined $available_overlap->[0])
+					   ? $available_overlap->[0]{pixels}
+					   : 0;
+		my $played_value = (defined $played_overlap->[0])
+					   ? $played_overlap->[0]{pixels}
+					   : 0;
+    		my $destination = ($available_value > $played_value)
+    				       ? $available_overlap->[0]
+    				       : $played_overlap->[0];
+		use Data::Dumper;
+		print Dumper($destination);
+    		$destination->{grid}->pieces->[$destination->{grid_index}] = $self->current_piece->{piece};
+    		$self->current_piece = undef;
+    	    }
+    	} elsif ($event->type == SDL_MOUSEMOTION and defined $self->current_piece) {
+    	    $self->current_piece->{piece}->x($event->motion_x);
+    	    $self->current_piece->{piece}->y($event->motion_y);
+    	}
+    };
+
+    method handle_show($delta, $app) {
+    	# first, we clear the screen
+    	$app->draw_rect( [ 0, 0, $app->w, $app->h ], 0x000000 );
+
+    	# Draw the two grids. The left one is playing grid.
+    	# The right one holds pieces in reserve.
+    	$self->played_pieces_grid->draw($app);
+    	$self->available_pieces_grid->draw($app);
+
+    	# Draw the piece being dragged
+    	if (defined $self->current_piece) {
+    	    $self->current_piece->{piece}->draw($app);
+    	}
+
+    	$app->update;
+    };
+
+    method _populate_available_pieces($font) {
+    	for my $y (0..2) {
+    	    for my $x (0..2) {
+    		my $index = $x + (3 * $y);
+    		my $x_offset = $self->available_pieces_grid->x + 121 * $x;
+    		my $y_offset = $self->available_pieces_grid->y + 121 * $y;
+
+    		# TODO: This could theoretically produce a 10.
+    		my @values = map { int(rand(10)) } (0..3);
+    		$self->available_pieces_grid->pieces->[$index] = Games::Tetravex::Piece->new(
+    		    x => $x_offset,
+    		    y => $y_offset,
+    		    value => \@values,
+    		    font  => $font,
+    		);
+
+    	    }
+    	}
+    };
+
+    method _set_current_piece($grid, $piece_number, $x, $y) {	
+	my $removed_info = $grid->remove_piece($piece_number);
+
+	$self->current_piece({});
+	$self->current_piece->{from_grid} = $removed_info->{removed_grid};
+	$self->current_piece->{old_position} = $removed_info->{old_position};
+    	$self->current_piece->{piece} = $removed_info->{piece};
+
+    	# Save the old coordinates of the piece before replacing them.
+    	$self->current_piece->{old_x} = $self->current_piece->{piece}->x;
+    	$self->current_piece->{old_y} = $self->current_piece->{piece}->y;
+    	$self->current_piece->{piece}->x($x);
+    	$self->current_piece->{piece}->y($y);
+    }
+
+}

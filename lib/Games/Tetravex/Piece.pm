@@ -19,6 +19,7 @@ use warnings;
 use MooseX::Declare;
 
 class Games::Tetravex::Piece {
+    use Carp 'cluck';
     use SDL::GFX::Primitives;
     use SDL::Surface;
     use SDLx::Text;
@@ -31,7 +32,8 @@ class Games::Tetravex::Piece {
     class_has 'Colors' => (
 	is      => 'ro',
 	isa     => 'ArrayRef',
-	default => sub {
+	default => sub { 
+	    [
 	    [0x000000FF, [255, 255, 255, 255]], # Black
 	    [0xFF0000FF, [0, 0, 0, 255]], # Red
 	    [0xF58D05FF, [0, 0, 0, 255]], # Orange
@@ -42,6 +44,7 @@ class Games::Tetravex::Piece {
             [0xEE82EEFF, [0, 0, 0, 255]], # Violet
             [0xCFCFCFFF, [0, 0, 0, 255]], # Grey
             [0xFFFFFFFF, [0, 0, 0, 255]], # White
+	];
 	},
     );
 
@@ -96,26 +99,28 @@ Draws the given piece with its upper left corner at ($x_offset, $y_offset)
 
 =cut
     method draw($surface) {
+	my $x = $self->x;
+	my $y = $self->y;
 	$self->_draw_triangle( $surface, $self->top,
-			       0, 0,
-			       120, 0,
-			       60, 60
+			       $x + 0,   $y + 0,
+			       $x + 120, $y + 0,
+			       $x + 60,  $y + 60
 			   );
 
 	$self->_draw_triangle( $surface, $self->right,
-			       120, 0,
-			       120, 120,
-			       60, 60
+			       $x + 120, $y + 0,
+			       $x + 120, $y + 120,
+			       $x + 60,  $y + 60
 			   );
 	$self->_draw_triangle( $surface, $self->bottom,
-			       120, 120,
-			       0, 120,
-			       60, 60
+			       $x + 120, $y + 120,
+			       $x + 0,   $y + 120,
+			       $x + 60,  $y + 60
 			   );
 	$self->_draw_triangle( $surface, $self->left,
-			       0, 120,
-			       0, 0,
-			       60, 60
+			       $x + 0,  $y + 120,
+			       $x + 0,  $y + 0,
+			       $x + 60, $y + 60
 			   );
     }
 
@@ -126,9 +131,7 @@ and a number in the middle.
 
 =cut
 
-    method _draw_triangle {
-	my ($surface, $number, $x1, $y1, $x2, $y2, $x3, $y3) = @_;
-
+    method _draw_triangle($surface, $number, $x1, $y1, $x2, $y2, $x3, $y3) {
 	SDL::GFX::Primitives::filled_trigon_color( $surface,
 						   $x1, $y1,
 						   $x2, $y2 ,
@@ -157,14 +160,14 @@ and a number in the middle.
     };
 
     method _build_black_text {
-	return SDLx::Text->new( font => $self->font,
+	return SDLx::Text->new( font => $self->font->absolute,
 				h_align => 'center',
 				color => [0, 0, 0, 255],
 			    );
     }
 
     method _build_white_text {
-	return SDLx::Text->new( font => $self->font,
+	return SDLx::Text->new( font => $self->font->absolute,
 				h_align => 'center',
 				color => [255, 255, 255, 255],
 			    );
