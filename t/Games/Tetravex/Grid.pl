@@ -22,31 +22,39 @@ sub startup : Tests(startup) {
 
 sub pieces_is_empty_by_default : Tests {
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
-    is(scalar @{$grid->pieces}, 0, 'pieces is empty');
+    is(scalar @{$grid->pieces}, 9, 'grid has 9 elements');
 }
 
-sub piece_at_returns_negative_one_if_no_piece_at_coordinates : Tests {
+sub grid_index_at_returns_negative_one_if_no_piece_at_coordinates : Tests {
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
     _initialize_pieces($grid);
 
-    my $piece_number = $grid->piece_at(75, 75);
-    is ($piece_number, -1, 'no piece was found outside of grid');
+    my $grid_index = $grid->grid_index_at(75, 75);
+    is ($grid_index, -1, 'no grid index was found outside of grid');
 }
 
-sub piece_at_returns_0_if_coordinates_at_first_piece : Tests {
+sub grid_index_at_returns_0_if_coordinates_at_first_piece : Tests {
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
     _initialize_pieces($grid);
 
-    my $piece_number = $grid->piece_at(120, 120);
-    is ($piece_number, 0, 'first piece in grid found');
+    my $grid_index = $grid->grid_index_at(120, 120);
+    is ($grid_index, 0, 'first position in grid found');
 }
 
-sub piece_at_finds_piece_in_middle_of_grid : Tests {
+sub grid_index_at_finds_piece_in_middle_of_grid : Tests {
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
     _initialize_pieces($grid);
 
-    my $piece_number = $grid->piece_at(225, 225);
-    is ($piece_number, 4, 'piece found in middle of grid');
+    my $grid_index = $grid->grid_index_at(225, 225);
+    is ($grid_index, 4, 'position found in middle of grid');
+}
+
+sub grid_index_at_finds_piece_in_lower_right : Tests {
+    my $grid = Games::Tetravex::Grid->new(x => 60, y => 60);
+    _initialize_pieces($grid);
+
+    my $grid_index = $grid->grid_index_at(339, 333);
+    is ($grid_index, 8, 'position found in lower right of grid');
 }
 
 sub remove_piece_sets_removed_piece_to_undef_in_grid : Tests {
@@ -62,13 +70,28 @@ sub get_overlap_returns_only_the_position_the_upper_left_of_the_piece_overlaps :
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
     _initialize_pieces($grid);
     my $overlap_piece = Games::Tetravex::Piece->new(
-	x => 225,
-	y => 225,
+	x     => 225,
+	y     => 225,
 	value => [0, 1, 2, 3],
+	font  => $font,
     );
 
     my $overlap = $grid->get_overlap($overlap_piece);
     is($overlap->[0]{grid_index}, 4, 'overlap is whatever the upper left corner is');
+}
+
+sub get_overlap_returns_overlap_if_coordinates_are_in_grid : Tests {
+    my $grid = Games::Tetravex::Grid->new(x => 60, y => 60);
+    _initialize_pieces($grid);
+
+    my $overlap_piece = Games::Tetravex::Piece->new(
+	x => 326,
+	y => 332,
+	value => [0, 1, 2, 3],
+	font  => $font,
+    );
+    my $overlap = $grid->get_overlap($overlap_piece);
+    is($overlap->[0]{grid_index}, 8, 'overlap found in lower right corner of gri');
 }
 
 sub _initialize_pieces {

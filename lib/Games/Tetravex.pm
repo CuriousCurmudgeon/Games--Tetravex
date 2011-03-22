@@ -106,11 +106,11 @@ class Games::Tetravex {
 	
     	    # Did they click a piece that has been played?
     	    my $piece_number;
-    	    if (($piece_number = $self->played_pieces_grid->piece_at($x, $y)) != -1) {
+    	    if (($piece_number = $self->played_pieces_grid->grid_index_at($x, $y)) != -1) {
     		if (defined $self->played_pieces_grid->pieces->[$piece_number]) {
     		    $self->_set_current_piece($self->played_pieces_grid, $piece_number, $x, $y);
     		}
-    	    } elsif (($piece_number = $self->available_pieces_grid->piece_at($x, $y)) != -1) {
+    	    } elsif (($piece_number = $self->available_pieces_grid->grid_index_at($x, $y)) != -1) {
     		if (defined $self->available_pieces_grid->pieces->[$piece_number]) {
     		    $self->_set_current_piece($self->available_pieces_grid, $piece_number, $x, $y);
     		}
@@ -122,6 +122,9 @@ class Games::Tetravex {
 
     	    # Put the piece back in the grid
     	    if (defined $self->current_piece) {
+		$self->current_piece->{piece}->x($event->motion_x);
+		$self->current_piece->{piece}->y($event->motion_y);
+
     		# Get the overlap from each grid
     		my $available_overlap = $self->available_pieces_grid->get_overlap($self->current_piece->{piece});
     		my $played_overlap = $self->played_pieces_grid->get_overlap($self->current_piece->{piece});
@@ -137,9 +140,13 @@ class Games::Tetravex {
     				       ? $available_overlap->[0]
     				       : $played_overlap->[0];
 		use Data::Dumper;
+		print Dumper($self->current_piece);
+		print Dumper($self->played_pieces_grid);
+		print Dumper($available_overlap);
+		print Dumper($played_overlap);
 		print Dumper($destination);
     		$destination->{grid}->pieces->[$destination->{grid_index}] = $self->current_piece->{piece};
-    		$self->current_piece = undef;
+    		$self->current_piece(undef);
     	    }
     	} elsif ($event->type == SDL_MOUSEMOTION and defined $self->current_piece) {
     	    $self->current_piece->{piece}->x($event->motion_x);

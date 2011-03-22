@@ -34,6 +34,16 @@ class Games::Tetravex::Grid {
 	isa => 'Int',
     );
 
+    # The coordinates of the upper left corner of
+    # each position in the grid.
+    has 'index_coords' => (
+	is       => 'rw',
+	isa      => 'ArrayRef',
+	builder  => '_build_index_coords',
+	lazy     => 1,
+	init_arg => undef,
+    );
+
     method draw($surface) {
 	# Draw the actual grid
 	# Each block in the grid is 120x120, with a one pixel
@@ -56,21 +66,19 @@ class Games::Tetravex::Grid {
     }
     
     # Get the number of the piece, if any, at the given coordinates.
-    method piece_at($x, $y) {
+    method grid_index_at($x, $y) {
 	for my $grid_y (0..2) {
 	    for my $grid_x (0..2) {
-		my $piece = $self->{pieces}[$grid_x + 3 * $grid_y];
-		
-		if (defined $piece
-		    && $x > $piece->x
-		    && $x < $piece->x + 120
-		    && $y > $piece->y
-		    && $y < $piece->y + 120) {
+		my $coords = $self->index_coords->[$grid_x + 3 * $grid_y];
+		if (   $x > $coords->{x}
+		    && $x < $coords->{x} + 120
+		    && $y > $coords->{y}
+		    && $y < $coords->{y} + 120) {
 		    return $grid_x + 3 * $grid_y;
 		}
 	    }
 	}
-	return -1; # no piece was found
+	return -1; # no index was found
     }
 
 =head2 remove_piece
@@ -100,23 +108,38 @@ be returned as well.
 =cut
 
     method get_overlap($piece) {
-	# We know that the piece is 120 x 120 and the coordinates we have are in the top left.
+	# We know that the piece is 120 x 120.
 	# At most four pieces can be overlapped, or two pieces and nothing
 	# TODO: Actually implement this. Currently we just return the overlap as entirely the upper_left position.
 	my $x = $piece->x;
 	my $y = $piece->y;
-	my $piece_number;
-	my $overlap;
-	if (($piece_number = $self->piece_at($x, $y)) != -1) {
+	my ($grid_index, $overlap);
+	if (($grid_index = $self->grid_index_at($x, $y)) != -1) {
 	    $overlap = [
 		{
 		    grid => $self,
-		    grid_index => $piece_number,
+		    grid_index => $grid_index,
 		    pixels => 120 * 120,
 		}
 	    ];
 	}
+	print "Found piece #$grid_index\n";
 	return $overlap;
+    }
+
+    method _build_index_coords() {
+	my $index_coords = [];
+	for my $y (0..2) {
+	    for my $x (0..2) {
+		my $index = $x + (3 * $y);
+
+		$index_coords->[$index] = {
+		    x => $self->x + 121 * $x,
+		    y => $self->y + 121 * $y,
+		};
+	    }
+	}
+	return $index_coords;
     }
 
 }
