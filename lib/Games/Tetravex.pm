@@ -57,7 +57,6 @@ class Games::Tetravex {
     # old_y = The y position the piece was moved from
     has 'current_piece' => (
 	is => 'rw',
-	isa => 'HashRef',
 	init_arg => undef,
     );
 
@@ -94,7 +93,7 @@ class Games::Tetravex {
     method BUILD($args) {
 	my $font = $self->assets->file('piece_font.ttf');
     	$self->_populate_available_pieces($font);
-    	$self->app->add_event_handler(sub { $self->handle_mouse_click(@_) });
+    	$self->app->add_event_handler( sub { $self->handle_mouse_click(@_) });
     	$self->app->add_show_handler( sub { $self->handle_show(@_) });
     }
 
@@ -139,12 +138,9 @@ class Games::Tetravex {
     		my $destination = ($available_value > $played_value)
     				       ? $available_overlap->[0]
     				       : $played_overlap->[0];
-		use Data::Dumper;
-		print Dumper($self->current_piece);
-		print Dumper($self->played_pieces_grid);
-		print Dumper($available_overlap);
-		print Dumper($played_overlap);
-		print Dumper($destination);
+		
+		$self->current_piece->{piece}->x($destination->{grid}->index_coords->[$destination->{grid_index}]{x});
+		$self->current_piece->{piece}->y($destination->{grid}->index_coords->[$destination->{grid_index}]{y});
     		$destination->{grid}->pieces->[$destination->{grid_index}] = $self->current_piece->{piece};
     		$self->current_piece(undef);
     	    }
