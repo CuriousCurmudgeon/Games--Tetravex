@@ -103,47 +103,15 @@ class Games::Tetravex {
     	    my $x = $event->button_x;
     	    my $y = $event->button_y;
 	
-    	    # Did they click a piece that has been played?
-    	    my $piece_number;
-    	    if (($piece_number = $self->played_pieces_grid->grid_index_at($x, $y)) != -1) {
-    		if (defined $self->played_pieces_grid->pieces->[$piece_number]) {
-    		    $self->_set_current_piece($self->played_pieces_grid, $piece_number, $x, $y);
-    		}
-    	    } elsif (($piece_number = $self->available_pieces_grid->grid_index_at($x, $y)) != -1) {
-    		if (defined $self->available_pieces_grid->pieces->[$piece_number]) {
-    		    $self->_set_current_piece($self->available_pieces_grid, $piece_number, $x, $y);
-    		}
-    	    }
+    	    # Did they click a piece? If so, set it to be the current piece.
+	    my $piece_info = $self->_is_piece_at($x, $y);
+	    if (defined $piece_info) {
+		$self->_set_current_piece($piece_info->{grid}, $piece_info->{grid_index}, $x, $y);
+	    }
 
     	} elsif ($event->type == SDL_MOUSEBUTTONUP and $event->button_button == SDL_BUTTON_LEFT) {
-    	    my $x = $event->button_x;
-    	    my $y = $event->button_y;
-
-    	    # Put the piece back in the grid
-    	    if (defined $self->current_piece) {
-		$self->current_piece->{piece}->x($event->motion_x);
-		$self->current_piece->{piece}->y($event->motion_y);
-
-    		# Get the overlap from each grid
-    		my $available_overlap = $self->available_pieces_grid->get_overlap($self->current_piece->{piece});
-    		my $played_overlap = $self->played_pieces_grid->get_overlap($self->current_piece->{piece});
-		
-    		# The destination is the one with the most overlap
-		my $available_value = (defined $available_overlap->[0])
-					   ? $available_overlap->[0]{pixels}
-					   : 0;
-		my $played_value = (defined $played_overlap->[0])
-					   ? $played_overlap->[0]{pixels}
-					   : 0;
-    		my $destination = ($available_value > $played_value)
-    				       ? $available_overlap->[0]
-    				       : $played_overlap->[0];
-		
-		$self->current_piece->{piece}->x($destination->{grid}->index_coords->[$destination->{grid_index}]{x});
-		$self->current_piece->{piece}->y($destination->{grid}->index_coords->[$destination->{grid_index}]{y});
-    		$destination->{grid}->pieces->[$destination->{grid_index}] = $self->current_piece->{piece};
-    		$self->current_piece(undef);
-    	    }
+    	    # Put the piece back in the grid if we have one
+    	    $self->_drop_current_piece($event->motion_x, $event->motion_y) if (defined $self->current_piece);
     	} elsif ($event->type == SDL_MOUSEMOTION and defined $self->current_piece) {
     	    $self->current_piece->{piece}->x($event->motion_x);
     	    $self->current_piece->{piece}->y($event->motion_y);
@@ -200,6 +168,43 @@ class Games::Tetravex {
     	$self->current_piece->{old_y} = $self->current_piece->{piece}->y;
     	$self->current_piece->{piece}->x($x);
     	$self->current_piece->{piece}->y($y);
+    }
+
+    # Gets a grid index of a piece and the grid it is from if their is one at the given coordinates.
+    # Returns undef if there isn't one.
+    method _is_piece_at($x, $y) {
+	for my $grid ($self->played_pieces_grid, $self->available_pieces_grid){
+	    my $grid_index = $grid->grid_index_at($x, $y);
+	    if ($grid_index != -1 && defined $grid->pieces->[$grid_index]) {
+		return { grid => $grid, grid_index => $grid_index};
+	    }
+	}
+	return undef;
+    }
+
+    method _drop_current_piece($x, $y) {
+	$self->current_piece->{piece}->x($x);
+	$self->current_piece->{piece}->y($y);
+
+	# Get the overlap from each grid
+	my $available_overlap = $self->available_pieces_grid->get_overlap($self->current_piece->{piece});
+	my $played_overlap = $self->played_pieces_grid->get_overlap($self->current_piece->{piece});
+		
+	# The destination is the one with the most overlap
+	my $available_value = (defined $available_overlap->[0])
+	    ? $available_overlap->[0]{pixels}
+		: 0;
+	my $played_value = (defined $played_overlap->[0])
+	    ? $played_overlap->[0]{pixels}
+		: 0;
+	my $destination = ($available_value > $played_value)
+	    ? $available_overlap->[0]
+		: $played_overlap->[0];
+		
+	$self->current_piece->{piece}->x($destination->{grid}->index_coords->[$destination->{grid_index}]{x});
+	$self->current_piece->{piece}->y($destination->{grid}->index_coords->[$destination->{grid_index}]{y});
+	$destination->{grid}->pieces->[$destination->{grid_index}] = $self->current_piece->{piece};
+	$self->current_piece(undef);
     }
 
 }
