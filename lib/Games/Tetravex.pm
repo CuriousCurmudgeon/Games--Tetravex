@@ -20,6 +20,7 @@ use MooseX::Declare;
 
 class Games::Tetravex {
     use Games::Tetravex::Grid;
+    use Games::Tetravex::Move;
     use Games::Tetravex::Piece;
     use SDL;
     use SDL::Event;
@@ -45,20 +46,32 @@ class Games::Tetravex {
 	required => 1,
     );
     
-    has 'assets' => (
-	is => 'ro',
+    has 'moves' => (
+	is       => 'ro',
+	isa      => 'ArrayRef[Games::Tetravex::Move]',
 	required => 1,
     );
 
-    # from_grid = The grid the user moved the piece from (HASHREF)
-    # piece = The piece actually being moved
-    # old_position = The position in the grid it was moved from. (SCALAR)
-    # old_x = The x position the piece was moved from
-    # old_y = The y position the piece was moved from
-    has 'current_piece' => (
-	is => 'rw',
-	init_arg => undef,
+    has 'is_moving_piece' => (
+    	is  => 'rw',
+    	isa => 'Bool',
+    	default => '0',
     );
+    
+    has 'assets' => (
+	is       => 'ro',
+	required => 1,
+    );
+
+    # # from_grid = The grid the user moved the piece from (HASHREF)
+    # # piece = The piece actually being moved
+    # # old_position = The position in the grid it was moved from. (SCALAR)
+    # # old_x = The x position the piece was moved from
+    # # old_y = The y position the piece was moved from
+    # has 'current_piece' => (
+    # 	is => 'rw',
+    # 	init_arg => undef,
+    # );
 
     sub BUILDARGS {
 	my ($class, %args) = @_;
@@ -85,6 +98,7 @@ class Games::Tetravex {
 	    available_pieces_grid => $available_pieces_grid,
 	    played_pieces_grid    => $played_pieces_grid,
 	    assets                => $assets,
+	    moves                 => [],
 	);
 
 	return {%args, %objects};
@@ -103,18 +117,16 @@ class Games::Tetravex {
     	    my $x = $event->button_x;
     	    my $y = $event->button_y;
 	
-    	    # Did they click a piece? If so, set it to be the current piece.
-	    my $piece_info = $self->_is_piece_at($x, $y);
-	    if (defined $piece_info) {
-		$self->_set_current_piece($piece_info->{grid}, $piece_info->{grid_index}, $x, $y);
-	    }
+	    $self->_start_move_if_piece($x, $y);
+	    $self->is_moving_piece(1);
 
     	} elsif ($event->type == SDL_MOUSEBUTTONUP and $event->button_button == SDL_BUTTON_LEFT) {
     	    # Put the piece back in the grid if we have one
-    	    $self->_drop_current_piece($event->motion_x, $event->motion_y) if (defined $self->current_piece);
-    	} elsif ($event->type == SDL_MOUSEMOTION and defined $self->current_piece) {
-    	    $self->current_piece->{piece}->x($event->motion_x);
-    	    $self->current_piece->{piece}->y($event->motion_y);
+    	    $self->_finish_move($event->motion_x, $event->motion_y) if (defined $self->is_moving_piece);
+    	} elsif ($event->type == SDL_MOUSEMOTION and $self->is_moving_piece) {
+	    my $move = $self->moves->[-1];
+    	    $move->piece->x($event->motion_x);
+    	    $move->piece->y($event->motion_y);
     	}
     };
 
@@ -128,8 +140,8 @@ class Games::Tetravex {
     	$self->available_pieces_grid->draw($app);
 
     	# Draw the piece being dragged
-    	if (defined $self->current_piece) {
-    	    $self->current_piece->{piece}->draw($app);
+    	if ($self->is_moving_piece) {
+    	    $self->moves->[-1]->piece->draw($app);
     	}
 
     	$app->update;
@@ -155,40 +167,31 @@ class Games::Tetravex {
     	}
     };
 
-    method _set_current_piece($grid, $piece_number, $x, $y) {	
-	my $removed_info = $grid->remove_piece($piece_number);
-
-	$self->current_piece({});
-	$self->current_piece->{from_grid} = $removed_info->{removed_grid};
-	$self->current_piece->{old_position} = $removed_info->{old_position};
-    	$self->current_piece->{piece} = $removed_info->{piece};
-
-    	# Save the old coordinates of the piece before replacing them.
-    	$self->current_piece->{old_x} = $self->current_piece->{piece}->x;
-    	$self->current_piece->{old_y} = $self->current_piece->{piece}->y;
-    	$self->current_piece->{piece}->x($x);
-    	$self->current_piece->{piece}->y($y);
-    }
-
-    # Gets a grid index of a piece and the grid it is from if their is one at the given coordinates.
-    # Returns undef if there isn't one.
-    method _is_piece_at($x, $y) {
+    # Starts a move if a piece is at the given coordinates.
+    method _start_move_if_piece($x, $y) {
 	for my $grid ($self->played_pieces_grid, $self->available_pieces_grid){
 	    my $grid_index = $grid->grid_index_at($x, $y);
 	    if ($grid_index != -1 && defined $grid->pieces->[$grid_index]) {
-		return { grid => $grid, grid_index => $grid_index};
+		my $move = Games::Tetravex::Move->new(
+		    from_grid  => $grid,
+		    from_index => $grid_index,
+		    piece      => $grid->pieces->[$grid_index],
+		);
+		push @{$self->moves}, $move;
+		$grid->remove_piece($grid_index);
+		$self->is_moving_piece(1);
 	    }
 	}
-	return undef;
     }
 
-    method _drop_current_piece($x, $y) {
-	$self->current_piece->{piece}->x($x);
-	$self->current_piece->{piece}->y($y);
+    method _finish_move($x, $y) {
+	my $move = $self->moves->[-1];
+	$move->piece->x($x);
+	$move->piece->y($y);
 
 	# Get the overlap from each grid
-	my $available_overlap = $self->available_pieces_grid->get_overlap($self->current_piece->{piece});
-	my $played_overlap = $self->played_pieces_grid->get_overlap($self->current_piece->{piece});
+	my $available_overlap = $self->available_pieces_grid->get_overlap($move->piece);
+	my $played_overlap = $self->played_pieces_grid->get_overlap($move->piece);
 		
 	# The destination is the one with the most overlap
 	my $available_value = (defined $available_overlap->[0])
@@ -200,11 +203,14 @@ class Games::Tetravex {
 	my $destination = ($available_value > $played_value)
 	    ? $available_overlap->[0]
 		: $played_overlap->[0];
-		
-	$self->current_piece->{piece}->x($destination->{grid}->index_coords->[$destination->{grid_index}]{x});
-	$self->current_piece->{piece}->y($destination->{grid}->index_coords->[$destination->{grid_index}]{y});
-	$destination->{grid}->pieces->[$destination->{grid_index}] = $self->current_piece->{piece};
-	$self->current_piece(undef);
+
+	$move->to_grid($destination->{grid});
+	$move->to_index($destination->{grid_index});
+
+	$move->piece->x($destination->{grid}->index_coords->[$destination->{grid_index}]{x});
+	$move->piece->y($destination->{grid}->index_coords->[$destination->{grid_index}]{y});
+	$move->to_grid->pieces->[$destination->{grid_index}] = $move->piece;
+	$self->is_moving_piece(0);
     }
 
 }
