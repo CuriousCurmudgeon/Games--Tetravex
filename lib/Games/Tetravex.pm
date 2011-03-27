@@ -22,6 +22,7 @@ class Games::Tetravex {
     use Games::Tetravex::Grid;
     use Games::Tetravex::Move;
     use Games::Tetravex::Piece;
+    use List::Util 'shuffle';
     use SDL;
     use SDL::Event;
     use SDLx::App;
@@ -148,18 +149,42 @@ class Games::Tetravex {
     };
 
     method _populate_available_pieces($font) {
-    	for my $y (0..2) {
+	use Data::Dumper;
+	# create some initial values for each piece.
+	my @solved;
+	for my $i (0..8) {
+	    # TODO: This could theoretically produce a 10.
+	    my @values = map { int(rand(10)) } (0..3);
+	    $solved[$i] = \@values;
+	}
+
+	# Now massage those values into a valid puzzle.
+	$solved[1]->[3] = $solved[0]->[1];
+	$solved[2]->[3] = $solved[1]->[1];
+	$solved[3]->[0] = $solved[0]->[2];
+	$solved[4]->[3] = $solved[3]->[1];
+	$solved[4]->[0] = $solved[1]->[2];
+	$solved[5]->[3] = $solved[4]->[1];
+	$solved[5]->[0] = $solved[2]->[2];
+	$solved[6]->[0] = $solved[3]->[2];
+	$solved[7]->[3] = $solved[6]->[1];
+	$solved[7]->[0] = $solved[4]->[2];
+	$solved[8]->[3] = $solved[7]->[1];
+	$solved[8]->[0] = $solved[5]->[2];
+	
+	my @shuffled = shuffle @solved;
+
+	my $pieces = $self->available_pieces_grid->pieces;
+    	for my $y (0 ..2) {
     	    for my $x (0..2) {
     		my $index = $x + (3 * $y);
     		my $x_offset = $self->available_pieces_grid->x + 121 * $x;
     		my $y_offset = $self->available_pieces_grid->y + 121 * $y;
 
-    		# TODO: This could theoretically produce a 10.
-    		my @values = map { int(rand(10)) } (0..3);
-    		$self->available_pieces_grid->pieces->[$index] = Games::Tetravex::Piece->new(
+    		$pieces->[$index] = Games::Tetravex::Piece->new(
     		    x => $x_offset,
     		    y => $y_offset,
-    		    value => \@values,
+    		    value => $shuffled[$index],
     		    font  => $font,
     		);
 
