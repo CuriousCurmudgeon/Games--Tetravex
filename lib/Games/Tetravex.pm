@@ -238,14 +238,19 @@ class Games::Tetravex {
 	
 	    if (   ($move->to_grid == $self->played_pieces_grid && $move->is_valid)
 		|| ($move->to_grid == $self->available_pieces_grid) ) {
-		$move->to_grid->insert_piece($move->piece, $move->to_index);
+		my $old_piece = $move->to_grid->insert_piece($move->piece, $move->to_index);
+		if ($old_piece) {
+		    $move->from_grid->insert_piece($old_piece, $move->from_index);
+		}
 	    }
 	    else {
 		# just put the piece back where we found it.
 		$move->from_grid->insert_piece($move->piece, $move->from_index);
 	    }
 	}
+
 	$self->is_moving_piece(0);
+
     }
 
 }
