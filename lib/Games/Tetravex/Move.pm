@@ -37,4 +37,43 @@ class Games::Tetravex::Move {
 	is => 'rw',
     );
 
+    # Is this move valid? This means that the colors/numbers
+    # of all neighboring pieces match.
+    method is_valid() {
+	# Look at each neighboring position. If that position
+	# is outside of the grid, then we don't care about it.
+	my $to_index = $self->to_index;
+
+	# Look above.
+	if ( ($to_index - 3) >= 0 ) {
+	    my $above = $self->to_grid->pieces->[$to_index - 3];
+	    if (defined $above && $self->piece->top != $above->bottom ) {
+		return 0;
+	    }
+	}
+	# Look below
+	if ( ($to_index + 3) <= 8 ) {
+	    my $below = $self->to_grid->pieces->[$to_index + 3];
+	    if (defined $below && $self->piece->bottom != $below->top ) {
+		return 0;
+	    }
+	}
+	# Look to the right
+	if ( ($to_index % 3) != 2 ) {
+	    my $right = $self->to_grid->pieces->[$to_index + 1];
+	    if (defined $right && $self->piece->right != $right->left ) {
+		return 0;
+	    }
+	}
+	# Look to the left
+	if ( ($to_index % 3) != 0 ) {
+	    my $left = $self->to_grid->pieces->[$to_index - 1];
+	    if (defined $left && $self->piece->left != $left->right ) {
+		return 0;
+	    }
+	}
+
+	return 1;
+    }
+
 }
