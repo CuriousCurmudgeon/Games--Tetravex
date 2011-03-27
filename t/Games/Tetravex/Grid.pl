@@ -81,6 +81,27 @@ sub insert_piece_sets_coordinates_of_inserted_piece_to_new_postion : Tests {
     is($old_piece, undef, 'no old piece returned');
 }
 
+sub insert_piece_returns_old_piece_if_one_was_already_at_index : Tests {
+    my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
+    my $original_piece = Games::Tetravex::Piece->new(
+	x => 0,
+	y => 0,
+	value => [0, 1, 2, 3],
+	font  => undef,
+    );
+    $grid->insert_piece($original_piece, 0);
+
+    my $piece = Games::Tetravex::Piece->new(
+	x => 0,
+	y => 0,
+	value => [0, 1, 2, 3],
+	font  => undef,
+    );
+
+    my $old_piece = $grid->insert_piece($piece, 0);
+    is($old_piece, $original_piece, 'the piece already there was returned');
+}
+
 sub get_overlap_returns_only_the_position_the_upper_left_of_the_piece_overlaps : Tests {
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
     _initialize_pieces($grid);
