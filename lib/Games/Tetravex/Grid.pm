@@ -123,7 +123,6 @@ be returned as well.
 		}
 	    ];
 	}
-	print "Found piece #$grid_index\n";
 	return $overlap;
     }
 
