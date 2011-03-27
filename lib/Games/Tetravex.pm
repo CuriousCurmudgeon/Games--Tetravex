@@ -204,12 +204,22 @@ class Games::Tetravex {
 	    ? $available_overlap->[0]
 		: $played_overlap->[0];
 
-	$move->to_grid($destination->{grid});
-	$move->to_index($destination->{grid_index});
-
-	$move->piece->x($destination->{grid}->index_coords->[$destination->{grid_index}]{x});
-	$move->piece->y($destination->{grid}->index_coords->[$destination->{grid_index}]{y});
-	$move->to_grid->pieces->[$destination->{grid_index}] = $move->piece;
+	if (!$destination) {
+	    $move->from_grid->insert_piece($move->piece, $move->from_index);
+	}
+	else {
+	    $move->to_grid($destination->{grid});
+	    $move->to_index($destination->{grid_index});
+	
+	    if (   ($move->to_grid == $self->played_pieces_grid && $move->is_valid)
+		|| ($move->to_grid == $self->available_pieces_grid) ) {
+		$move->to_grid->insert_piece($move->piece, $move->to_index);
+	    }
+	    else {
+		# just put the piece back where we found it.
+		$move->from_grid->insert_piece($move->piece, $move->from_index);
+	    }
+	}
 	$self->is_moving_piece(0);
     }
 
