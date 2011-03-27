@@ -66,6 +66,21 @@ sub remove_piece_sets_removed_piece_to_undef_in_grid : Tests {
     is($grid->pieces->[0], undef, '...and the piece is no longer in the grid');
 }
 
+sub insert_piece_sets_coordinates_of_inserted_piece_to_new_postion : Tests {
+    my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
+    my $piece = Games::Tetravex::Piece->new(
+	x => 0,
+	y => 0,
+	value => [0, 1, 2, 3],
+	font  => undef,
+    );
+
+    my $old_piece = $grid->insert_piece($piece, 0);
+    is($piece->x, 100, 'inserted piece x coord set correctly');
+    is($piece->y, 100, 'inserted piece y coord set correctly');
+    is($old_piece, undef, 'no old piece returned');
+}
+
 sub get_overlap_returns_only_the_position_the_upper_left_of_the_piece_overlaps : Tests {
     my $grid = Games::Tetravex::Grid->new(x => 100, y => 100);
     _initialize_pieces($grid);

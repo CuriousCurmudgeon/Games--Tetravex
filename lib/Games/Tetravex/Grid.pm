@@ -99,6 +99,23 @@ Remove the piece from the grid and return information about it.
 	return $current_piece;
     }
 
+=head 2 insert_piece
+
+Inserts a piece into the grid at the given index.
+If a piece exists already at that position, that piece will
+be returned. Otherwise, undef.
+
+=cut
+    method insert_piece($piece, $grid_index) {
+	$piece->x($self->index_coords->[$grid_index]{x});
+	$piece->y($self->index_coords->[$grid_index]{x});
+
+	my $old_piece = $self->pieces->[$grid_index];
+	$self->pieces->[$grid_index] = $piece;
+
+	return $old_piece;
+    }
+
 =head2 get_overlap
 
 Returns a hashref of all the grid positions the current_piece
