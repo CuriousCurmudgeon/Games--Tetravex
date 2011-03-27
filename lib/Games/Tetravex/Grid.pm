@@ -108,7 +108,7 @@ be returned. Otherwise, undef.
 =cut
     method insert_piece($piece, $grid_index) {
 	$piece->x($self->index_coords->[$grid_index]{x});
-	$piece->y($self->index_coords->[$grid_index]{x});
+	$piece->y($self->index_coords->[$grid_index]{y});
 
 	my $old_piece = $self->pieces->[$grid_index];
 	$self->pieces->[$grid_index] = $piece;

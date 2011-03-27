@@ -75,8 +75,8 @@ sub insert_piece_sets_coordinates_of_inserted_piece_to_new_postion : Tests {
 	font  => undef,
     );
 
-    my $old_piece = $grid->insert_piece($piece, 0);
-    is($piece->x, 100, 'inserted piece x coord set correctly');
+    my $old_piece = $grid->insert_piece($piece, 1);
+    is($piece->x, 221, 'inserted piece x coord set correctly');
     is($piece->y, 100, 'inserted piece y coord set correctly');
     is($old_piece, undef, 'no old piece returned');
 }
