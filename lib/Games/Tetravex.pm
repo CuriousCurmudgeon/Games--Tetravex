@@ -27,6 +27,7 @@ class Games::Tetravex {
     use SDL::Event;
     use SDLx::App;
     use SDLx::Rect;
+    use SDLx::Text;
 
     has 'app' => (
 	is       => 'ro',
@@ -54,12 +55,23 @@ class Games::Tetravex {
     );
 
     has 'is_moving_piece' => (
-    	is  => 'rw',
-    	isa => 'Bool',
+    	is      => 'rw',
+    	isa     => 'Bool',
     	default => '0',
     );
     
     has 'assets' => (
+	is       => 'ro',
+	required => 1,
+    );
+
+    # The time the game was started
+    has '_start_time' => (
+	is      => 'ro',
+	default => sub { return time;  },
+    );
+
+    has '_text' => (
 	is       => 'ro',
 	required => 1,
     );
@@ -94,12 +106,21 @@ class Games::Tetravex {
 	    y => 60,
 	);
 
+	my $text = SDLx::Text->new( 
+	    font    => $assets->file('piece_font.ttf')->absolute,
+	    h_align => 'center',
+	    color   => [255, 255, 255, 255],
+	    x       => 0,
+	    y       => 0,
+	);
+
 	my %objects = (
 	    app                   => $app,
 	    available_pieces_grid => $available_pieces_grid,
 	    played_pieces_grid    => $played_pieces_grid,
 	    assets                => $assets,
 	    moves                 => [],
+	    _text                 => $text,
 	);
 
 	return {%args, %objects};
@@ -150,9 +171,13 @@ class Games::Tetravex {
     	    $self->moves->[-1]->piece->draw($app);
     	}
 
+	$self->_text->write_to($app, (time - $self->_start_time).' ');
+
     	$app->update;
     };
 
+    # All pieces are checked before insertion, so we can assume
+    # that if every piece has been placed, the puzzle is solved.
     method is_solved() {
 	for my $piece (@{$self->played_pieces_grid->pieces}) {
 	    return 0 unless defined $piece;
