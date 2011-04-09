@@ -19,6 +19,7 @@ use warnings;
 use MooseX::Declare;
 
 class Games::Tetravex {
+    use DateTime;
     use Games::Tetravex::Grid;
     use Games::Tetravex::Move;
     use Games::Tetravex::Piece;
@@ -68,7 +69,7 @@ class Games::Tetravex {
     # The time the game was started
     has '_start_time' => (
 	is      => 'ro',
-	default => sub { return time;  },
+	default => sub { return DateTime->from_epoch(epoch => time);  },
     );
 
     has '_text' => (
@@ -171,7 +172,7 @@ class Games::Tetravex {
     	    $self->moves->[-1]->piece->draw($app);
     	}
 
-	$self->_text->write_to($app, (time - $self->_start_time).' ');
+	$self->_draw_timer($app);
 
     	$app->update;
     };
@@ -287,6 +288,14 @@ class Games::Tetravex {
 	}
 
 	$self->is_moving_piece(0);
+    }
+
+    method _draw_timer($app) {
+	my $current_time = DateTime->from_epoch(epoch => time);
+	my $time_spent = $current_time->subtract_datetime($self->_start_time);
+	my $minutes = $time_spent->minutes;
+	my $seconds = sprintf("%02d", $time_spent->seconds);
+	$self->_text->write_to($app, $minutes.':'.$seconds);
     }
 
 }
