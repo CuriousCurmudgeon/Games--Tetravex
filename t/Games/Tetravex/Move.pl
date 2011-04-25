@@ -200,9 +200,47 @@ sub is_valid_returns_true_for_valid_move_to_bottom_right_corner : Tests {
     is($move->is_valid, 1, 'the move was valid');
 }
 
+# Swaps that move a piece to a restricted grid should not allow
+# this move if it is invalid.
+sub is_valid_returns_false_for_invalid_swap : Tests {
+    my ($available_grid, $played_grid) = _initialize_grids();
+
+    # This piece is sitting in the available grid and will be 
+    # swapped into the lower right corner, which
+    # should be recognized as an invalid move.
+    my $swapped_piece = _create_piece(0, 0, 0, 0);
+
+    # This piece is currently sitting valid in the lower
+    # right corner.
+    my $moved_piece   = _create_piece(1, 2, 3, 4);
+    $available_grid->pieces->[0] = $swapped_piece;
+    $played_grid->pieces->[8]   = $moved_piece;
+    $played_grid->pieces->[5]   = _create_piece(0, 0, 1, 0);
+    $played_grid->pieces->[7]   = _create_piece(0, 0, 0, 2);
+
+    my $move = Games::Tetravex::Move->new(
+	from_grid     => $played_grid,
+	to_grid       => $available_grid,
+	from_index    => 0,
+	to_index      => 0,
+	piece         => $moved_piece,
+	swapped_piece => $swapped_piece,
+    );
+
+    is($move->is_valid, 0, 'the move was invalid');
+}
+
 sub _initialize_grids {
-    my $from_grid = Games::Tetravex::Grid->new(x => 100, y => 100);
-    my $to_grid = Games::Tetravex::Grid->new(x => 500, y => 100);
+    my $from_grid = Games::Tetravex::Grid->new(
+	x              => 100,
+	y              => 100,
+	requires_valid => 1,
+    );
+    my $to_grid = Games::Tetravex::Grid->new(
+	x              => 500,
+	y              => 100,
+	requires_valid => 1,
+    );
     return ($from_grid, $to_grid);
 }
 
