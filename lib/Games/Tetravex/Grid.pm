@@ -24,14 +24,20 @@ class Games::Tetravex::Grid {
     use SDL::Surface;
 
     has 'pieces' => (
-	is => 'ro',
+	is  => 'ro',
 	isa => 'ArrayRef',
 	default => sub { my @pieces = map { undef } (0..8); return \@pieces },
     );
 
     has ['x', 'y'] => (
-	is => 'rw',
+	is  => 'rw',
 	isa => 'Int',
+    );
+
+    # Does this grid require that all pieces be in valid positions?
+    has 'requires_valid' => (
+	is  => 'ro',
+	isa => 'Bool',
     );
 
     # The coordinates of the upper left corner of

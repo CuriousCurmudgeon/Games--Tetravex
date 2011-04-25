@@ -99,12 +99,14 @@ class Games::Tetravex {
 	
 	my $assets = $args{assets};
 	my $available_pieces_grid = Games::Tetravex::Grid->new(
-	    x => 480,
-	    y => 60,
+	    x              => 480,
+	    y              => 60,
+	    requires_valid => 0,
 	);
 	my $played_pieces_grid = Games::Tetravex::Grid->new(
-	    x => 60,
-	    y => 60,
+	    x              => 60,
+	    y              => 60,
+	    requires_valid => 1,
 	);
 
 	my $text = SDLx::Text->new( 
