@@ -221,7 +221,7 @@ sub is_valid_returns_false_for_invalid_swap : Tests {
     my $move = Games::Tetravex::Move->new(
 	from_grid     => $played_grid,
 	to_grid       => $available_grid,
-	from_index    => 0,
+	from_index    => 8,
 	to_index      => 0,
 	piece         => $moved_piece,
 	swapped_piece => $swapped_piece,
