@@ -37,9 +37,22 @@ class Games::Tetravex::Move {
 	is => 'rw',
     );
 
+    # If the grid location already had piece, this is the piece
+    # that was already there. It will be swapped to the position
+    # the moved piece came from.
+    has 'swapped_piece' => (
+	is => 'rw',
+    );
+
     # Is this move valid? This means that the colors/numbers
-    # of all neighboring pieces match.
+    # of all neighboring pieces match. If we are swapping pieces,
+    # the swapped piece must be valid too.
     method is_valid() {
+	# If we aren't moving the piece to a grid that requires
+	# valid moves, then just return 1.
+	if ( !$self->to_grid->requires_valid ) {
+	    return 1;
+	}
 	# Look at each neighboring position. If that position
 	# is outside of the grid, then we don't care about it.
 	my $to_index = $self->to_index;

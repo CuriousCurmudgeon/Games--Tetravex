@@ -276,8 +276,7 @@ class Games::Tetravex {
 	    $move->to_grid($destination->{grid});
 	    $move->to_index($destination->{grid_index});
 	
-	    if (   ($move->to_grid == $self->played_pieces_grid && $move->is_valid)
-		|| ($move->to_grid == $self->available_pieces_grid) ) {
+	    if ( $move->is_valid) {
 		my $old_piece = $move->to_grid->insert_piece($move->piece, $move->to_index);
 		if ($old_piece) {
 		    $move->from_grid->insert_piece($old_piece, $move->from_index);
