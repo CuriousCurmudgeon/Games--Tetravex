@@ -275,6 +275,10 @@ class Games::Tetravex {
 	else {
 	    $move->to_grid($destination->{grid});
 	    $move->to_index($destination->{grid_index});
+
+	    # If there is a piece at the destination, that becomes the
+	    # swapped piece.
+	    $move->swapped_piece($move->to_grid->pieces->[$move->to_index]);
 	
 	    if ( $move->is_valid) {
 		my $old_piece = $move->to_grid->insert_piece($move->piece, $move->to_index);
