@@ -133,11 +133,9 @@ class Games::Tetravex {
     	    my $y = $event->button_y;
 	
 	    $self->_start_move_if_piece($x, $y);
-	    $self->is_moving_piece(1);
-
     	} elsif ($event->type == SDL_MOUSEBUTTONUP and $event->button_button == SDL_BUTTON_LEFT) {
     	    # Put the piece back in the grid if we have one
-    	    $self->_finish_move($event->motion_x, $event->motion_y) if (defined $self->is_moving_piece);
+    	    $self->_finish_move($event->motion_x, $event->motion_y) if ($self->is_moving_piece);
 
 	    if($self->is_solved()) {
 		print "puzzle solved!\n";
