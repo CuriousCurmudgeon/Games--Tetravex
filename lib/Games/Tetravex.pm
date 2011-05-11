@@ -77,16 +77,6 @@ class Games::Tetravex {
 	required => 1,
     );
 
-    # # from_grid = The grid the user moved the piece from (HASHREF)
-    # # piece = The piece actually being moved
-    # # old_position = The position in the grid it was moved from. (SCALAR)
-    # # old_x = The x position the piece was moved from
-    # # old_y = The y position the piece was moved from
-    # has 'current_piece' => (
-    # 	is => 'rw',
-    # 	init_arg => undef,
-    # );
-
     sub BUILDARGS {
 	my ($class, %args) = @_;
 	
